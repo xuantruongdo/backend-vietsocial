@@ -11,17 +11,14 @@ import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { getHashPassword } from 'src/helpers/getHashPassword';
 import { compareSync } from 'bcryptjs';
 import { MailService } from 'src/mail/mail.service';
-import { Response } from 'express';
-import { createRefreshToken } from 'src/helpers/createRefreshToken';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
-import ms from 'ms';
-import { IUser } from 'src/types/users.interface';
+import { Role, RoleDocument } from 'src/roles/entities/role.entity';
+import { USER_ROLE } from 'src/databases/sample';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: SoftDeleteModel<UserDocument>,
+    @InjectModel(Role.name) private roleModel: SoftDeleteModel<RoleDocument>,
     private mailService: MailService,
   ) {}
 
@@ -36,11 +33,13 @@ export class UsersService {
 
     const hashPassword = getHashPassword(password);
 
+    const userRole = await this.roleModel.findOne({ name: USER_ROLE })
+
     const newUser = await this.userModel.create({
       fullname,
       email,
       password: hashPassword,
-      role: 'USER_NOMARL',
+      role: userRole._id,
       isActive: false,
       type: 'SYSTEM',
     });
@@ -51,7 +50,13 @@ export class UsersService {
   }
 
   async findOneByEmail(email: string) {
-    return await this.userModel.findOne({ email });
+    return await this.userModel.findOne({ email }).populate({
+      path: 'role',
+      select: {
+        _id: 1,
+        name: 1,
+      },
+    });
   }
 
   async isValidPassword(password: string, hash: string) {
@@ -65,14 +70,15 @@ export class UsersService {
     );
   }
 
-
   async findUserByToken(refreshToken: string) {
-    return await this.userModel.findOne({refreshToken})
+    return await this.userModel.findOne({ refreshToken }).populate({
+      path: 'role',
+      select: {
+        _id: 1,
+        name: 1,
+      },
+    });
   }
-
-
-
-
 
   create(createUserDto: CreateUserDto) {
     return 'This action adds a new user';

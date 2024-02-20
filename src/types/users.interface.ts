@@ -16,4 +16,10 @@ export interface IUser {
     relationship: string;
     friends: mongoose.Types.ObjectId[];
     followings: mongoose.Types.ObjectId[];
+    permissions?: {
+        _id: string;
+        name: string;
+        apiPath: string;
+        module: string;
+    }[]
 }

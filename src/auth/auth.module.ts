@@ -10,11 +10,13 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './passport/jwt.strategy';
 import ms from 'ms';
+import { RolesModule } from 'src/roles/roles.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     UsersModule,
+    RolesModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

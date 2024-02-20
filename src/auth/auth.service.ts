@@ -6,6 +6,7 @@ import { Response } from 'express';
 import ms from 'ms';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { createRefreshToken } from 'src/helpers/createRefreshToken';
+import { RolesService } from 'src/roles/roles.service';
 import { IUser } from 'src/types/users.interface';
 import { ActiveUserDto, RegisterUserDto } from 'src/users/dto/create-user.dto';
 import { User, UserDocument } from 'src/users/entities/user.entity';
@@ -17,6 +18,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private rolesService: RolesService,
     @InjectModel(User.name) private userModel: SoftDeleteModel<UserDocument>,
   ) {}
 
@@ -66,11 +68,19 @@ export class AuthService {
       throw new BadRequestException('Incorrect password');
     }
 
-    return user;
+    const userRole = user.role as unknown as { _id: string; name: string };
+    const temp = await this.rolesService.findOne(userRole._id);
+
+    const objectUser = {
+      ...user.toObject(),
+      permissions: temp?.permissions ?? [],
+    };
+
+    return objectUser;
   }
 
   async login(user: IUser, response: Response) {
-    const { _id, fullname, email } = user;
+    const { _id, fullname, email, role, permissions } = user;
 
     const payload = {
       sub: 'token login',
@@ -78,6 +88,7 @@ export class AuthService {
       _id,
       fullname,
       email,
+      role,
     };
 
     const refresh_token = createRefreshToken(
@@ -94,15 +105,15 @@ export class AuthService {
     await this.usersService.updateRefreshToken(_id, refresh_token);
     return {
       access_token: this.jwtService.sign(payload),
-      user: { _id, fullname, email },
+      user: { _id, fullname, email, role, permissions },
     };
   }
 
   async processNewToken(refresh_token_cookie: string, response: Response) {
     try {
-      const user =
-        await this.usersService.findUserByToken(refresh_token_cookie);
-      const { _id, fullname, email } = user;
+      const user = await this.usersService.findUserByToken(refresh_token_cookie);
+      console.log(user);
+      const { _id, fullname, email, role } = user;
 
       const payload = {
         sub: 'token login',
@@ -127,9 +138,19 @@ export class AuthService {
         maxAge: ms(this.configService.get<string>('JWT_REFRESH_EXPIRE')),
       });
 
+      const userRole = user.role as unknown as { _id: string; name: string };
+
+      const temp = await this.rolesService.findOne(userRole._id);
+
       return {
         access_token: this.jwtService.sign(payload),
-        user: { _id, fullname, email },
+        user: {
+          _id,
+          fullname,
+          email,
+          role,
+          permissions: temp?.permissions ?? [],
+        },
       };
     } catch (err) {
       throw new BadRequestException('Refresh token is not valid! Please login');
