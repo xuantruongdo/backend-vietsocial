@@ -12,10 +12,12 @@ export class MailService {
     @InjectModel(User.name) private userModel: SoftDeleteModel<UserDocument>,
   ) {}
 
-  async sendConfirmationEmail(email: string, fullname: string) {
+  async sendConfirmationEmail(email: string) {
+    const user = await this.userModel.findOne({ email });
+
     const confirmationCode = generateConfirmationCode();
 
-    await this.userModel.findOne({ email }).updateOne({ confirmationCode });
+    await user.updateOne({ confirmationCode });
 
     return await this.mailerService.sendMail({
       to: email,
@@ -23,8 +25,22 @@ export class MailService {
       subject: 'Welcome to VietSocial App! Confirm your Email',
       template: 'active',
       context: {
-        fullname,
+        fullname: user.fullname,
         confirmationCode,
+      },
+    });
+  }
+
+  async sendNewPassword(email: string, newPassword: string) {
+    const user = await this.userModel.findOne({ email });
+    return await this.mailerService.sendMail({
+      to: email,
+      from: '"Support VietSocial" <dev.doxuantruong@gmail.com>',
+      subject: 'Your new password',
+      template: 'password',
+      context: {
+        fullname: user.fullname,
+        newPassword,
       },
     });
   }

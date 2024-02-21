@@ -1,52 +1,20 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   CreateUserDto,
-  RegisterUserDto,
 } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './entities/user.entity';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
-import { getHashPassword } from 'src/helpers/getHashPassword';
 import { compareSync } from 'bcryptjs';
 import { MailService } from 'src/mail/mail.service';
 import { Role, RoleDocument } from 'src/roles/entities/role.entity';
-import { USER_ROLE } from 'src/databases/sample';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: SoftDeleteModel<UserDocument>,
-    @InjectModel(Role.name) private roleModel: SoftDeleteModel<RoleDocument>,
-    private mailService: MailService,
   ) {}
-
-  async register(registerUserDto: RegisterUserDto) {
-    const { fullname, email, password } = registerUserDto;
-
-    const isExist = await this.userModel.findOne({ email });
-
-    if (isExist) {
-      throw new BadRequestException('Email already exists');
-    }
-
-    const hashPassword = getHashPassword(password);
-
-    const userRole = await this.roleModel.findOne({ name: USER_ROLE })
-
-    const newUser = await this.userModel.create({
-      fullname,
-      email,
-      password: hashPassword,
-      role: userRole._id,
-      isActive: false,
-      type: 'SYSTEM',
-    });
-
-    // await this.mailService.sendConfirmationEmail(email, fullname);
-
-    return newUser;
-  }
 
   async findOneByEmail(email: string) {
     return await this.userModel.findOne({ email }).populate({

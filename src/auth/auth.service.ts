@@ -5,10 +5,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Response } from 'express';
 import ms from 'ms';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
+import { USER_ROLE } from 'src/databases/sample';
 import { createRefreshToken } from 'src/helpers/createRefreshToken';
+import { generateRandomString } from 'src/helpers/generateRandomString';
+import { getHashPassword } from 'src/helpers/getHashPassword';
+import { MailService } from 'src/mail/mail.service';
 import { RolesService } from 'src/roles/roles.service';
 import { IUser } from 'src/types/users.interface';
-import { ActiveUserDto, RegisterUserDto } from 'src/users/dto/create-user.dto';
+import { ActiveUserDto, ChangePasswordDto, ForgetPasswordDto, GetCodeDto, RegisterUserDto } from 'src/users/dto/create-user.dto';
 import { User, UserDocument } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/users.service';
 
@@ -19,11 +23,34 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private rolesService: RolesService,
+    private mailService: MailService,
     @InjectModel(User.name) private userModel: SoftDeleteModel<UserDocument>,
   ) {}
 
   async register(registerUserDto: RegisterUserDto) {
-    const newUser = await this.usersService.register(registerUserDto);
+
+    const { fullname, email, password } = registerUserDto;
+
+    const isExist = await this.userModel.findOne({ email });
+
+    if (isExist) {
+      throw new BadRequestException('Email already exists');
+    }
+
+    const hashPassword = getHashPassword(password);
+
+    const userRole = await this.rolesService.findOneByName(USER_ROLE)
+
+    const newUser = await this.userModel.create({
+      fullname,
+      email,
+      password: hashPassword,
+      role: userRole._id,
+      isActive: false,
+      type: 'SYSTEM',
+    });
+
+    await this.mailService.sendConfirmationEmail(email);
 
     return {
       _id: newUser?._id,
@@ -52,31 +79,9 @@ export class AuthService {
     return await user.updateOne({ isActive: true });
   }
 
-  async validateUser(email: string, pass: string): Promise<any> {
-    const user = await this.usersService.findOneByEmail(email);
-
-    if (!user) {
-      throw new BadRequestException('Email does not exist');
-    }
-
-    const isValid = await this.usersService.isValidPassword(
-      pass,
-      user.password,
-    );
-
-    if (!isValid) {
-      throw new BadRequestException('Incorrect password');
-    }
-
-    const userRole = user.role as unknown as { _id: string; name: string };
-    const temp = await this.rolesService.findOne(userRole._id);
-
-    const objectUser = {
-      ...user.toObject(),
-      permissions: temp?.permissions ?? [],
-    };
-
-    return objectUser;
+  async sendAuthenticationCode(getCodeDto: GetCodeDto) {
+    const { email } = getCodeDto;
+    await this.mailService.sendConfirmationEmail(email);
   }
 
   async login(user: IUser, response: Response) {
@@ -107,6 +112,69 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
       user: { _id, fullname, email, role, permissions },
     };
+  }
+
+  async forgetPassword(forgetPasswordDto: ForgetPasswordDto) {
+    const { email, confirmationCode } = forgetPasswordDto;
+    const user = await this.userModel.findOne({ email });
+
+    if (user.confirmationCode !== confirmationCode) {
+      throw new BadRequestException(
+        'Activation code is incorrect. Please try again',
+      );
+    }
+
+    const randomPassword = generateRandomString();
+
+    const hashPassword = getHashPassword(randomPassword);
+
+    await this.mailService.sendNewPassword(email, randomPassword);
+
+    return await user.updateOne({ password: hashPassword });
+  }
+
+  async changePassword(changePasswordDto: ChangePasswordDto, user: IUser) {
+    const { currentPassword, newPassword } = changePasswordDto;
+
+    const userCurrent = await this.userModel.findOne({ _id: user?._id });
+    const isValid = this.usersService.isValidPassword(currentPassword, userCurrent.password);
+
+    if (!isValid) {
+      throw new BadRequestException('Incorrect password');
+    }
+    
+    const hashPassword = getHashPassword(newPassword);
+    return await this.userModel.updateOne({ _id: user?._id }, {
+      password: hashPassword
+    })
+
+  }
+
+  async validateUser(email: string, pass: string): Promise<any> {
+    const user = await this.usersService.findOneByEmail(email);
+
+    if (!user) {
+      throw new BadRequestException('Email does not exist');
+    }
+
+    const isValid = await this.usersService.isValidPassword(
+      pass,
+      user.password,
+    );
+
+    if (!isValid) {
+      throw new BadRequestException('Incorrect password');
+    }
+
+    const userRole = user.role as unknown as { _id: string; name: string };
+    const temp = await this.rolesService.findOne(userRole._id);
+
+    const objectUser = {
+      ...user.toObject(),
+      permissions: temp?.permissions ?? [],
+    };
+
+    return objectUser;
   }
 
   async processNewToken(refresh_token_cookie: string, response: Response) {

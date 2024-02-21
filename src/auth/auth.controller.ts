@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  Patch,
   Post,
   Req,
   Request,
@@ -10,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public, ResponseMessage, UserRequest } from 'src/decorator/customize';
-import { ActiveUserDto, RegisterUserDto } from 'src/users/dto/create-user.dto';
+import { ActiveUserDto, ChangePasswordDto, ForgetPasswordDto, GetCodeDto, RegisterUserDto } from 'src/users/dto/create-user.dto';
 import { LocalAuthGuard } from './local-auth.guard';
 import { Request as RequestType, Response } from 'express';
 import { IUser } from 'src/types/users.interface';
@@ -22,35 +24,55 @@ export class AuthController {
   @Public()
   @ResponseMessage('Register a user')
   @Post('/register')
-  handleRegister(@Body() registerUserDto: RegisterUserDto) {
+  register(@Body() registerUserDto: RegisterUserDto) {
     return this.authService.register(registerUserDto);
   }
 
   @Public()
   @ResponseMessage('Active account')
   @Post('/active')
-  handleActive(@Body() activeUserDto: ActiveUserDto) {
+  active(@Body() activeUserDto: ActiveUserDto) {
     return this.authService.active(activeUserDto);
+  }
+
+  @Public()
+  @ResponseMessage('Generate new password')
+  @Post('/forget')
+  forgetPassword(@Body() forgetPasswordDto: ForgetPasswordDto) {
+    return this.authService.forgetPassword(forgetPasswordDto);
+  }
+
+  @Public()
+  @ResponseMessage('Send code by email')
+  @Post('/code')
+  sendAuthenticationCode(@Body() getCodeDto: GetCodeDto) {
+    return this.authService.sendAuthenticationCode(getCodeDto);
+  }
+
+  @ResponseMessage("Change password")
+  @Patch('/password')
+  handleChangePassword( @Body() changePasswordDto: ChangePasswordDto, @UserRequest() user: IUser) {
+    return this.authService.changePassword( changePasswordDto, user);
   }
 
   @Public()
   @ResponseMessage('Login account')
   @UseGuards(LocalAuthGuard)
   @Post('/login')
-  handleLogin(@Req() req, @Res({ passthrough: true }) response: Response) {
+  login(@Req() req, @Res({ passthrough: true }) response: Response) {
     return this.authService.login(req.user, response);
   }
 
   @ResponseMessage('Fetch current account')
   @Get('/account')
-  handleFetchCurrentAccount(@UserRequest() user: IUser) {
+  fetchCurrentAccount(@UserRequest() user: IUser) {
     return user;
   }
 
   @Public()
   @ResponseMessage('Refresh token')
   @Post('/refresh')
-  handleRefreshToken(
+  refreshToken(
     @Req() request: RequestType,
     @Res({ passthrough: true }) response: Response,
   ) {
@@ -60,7 +82,7 @@ export class AuthController {
 
   @ResponseMessage('Logout account')
   @Post('/logout')
-  handleLogout(
+  logout(
     @Res({ passthrough: true }) response: Response,
     @UserRequest() user: IUser
   ) {
