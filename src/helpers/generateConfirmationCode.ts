@@ -1,4 +1,4 @@
-export const generateConfirmationCode = () => {
+export const generateConfirmationCode = () : Number => {
   const codeLength = 6;
   let code = '';
 

@@ -43,7 +43,7 @@ export class UsersService {
       type: 'SYSTEM',
     });
 
-    await this.mailService.sendConfirmationEmail(email, fullname);
+    // await this.mailService.sendConfirmationEmail(email, fullname);
 
     return newUser;
   }
