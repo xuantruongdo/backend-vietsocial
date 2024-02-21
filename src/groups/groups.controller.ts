@@ -29,9 +29,14 @@ export class GroupsController {
     return this.groupsService.findOne(id);
   }
 
+  @ResponseMessage('Update group')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateGroupDto: UpdateGroupDto) {
-    return this.groupsService.update(+id, updateGroupDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateGroupDto: UpdateGroupDto,
+    @UserRequest() user: IUser,
+  ) {
+    return this.groupsService.update(id, updateGroupDto, user);
   }
 
   @Delete(':id')

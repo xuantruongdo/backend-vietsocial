@@ -24,7 +24,7 @@ export class Group {
   members: mongoose.Types.ObjectId[];
 
   @Prop({ type: [mongoose.Schema.Types.ObjectId], default: [], ref: User.name })
-  admin: mongoose.Types.ObjectId;
+  admin: mongoose.Types.ObjectId[];
 
   @Prop({ type: Object })
   createdBy: {

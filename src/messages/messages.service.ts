@@ -56,11 +56,21 @@ export class MessagesService {
     ]);
   }
 
-  async findAll(chatId: string) {
-    return await this.messageModel.find({ chat: chatId }).populate([
+  async findAll(chatId: string, user: IUser) {
+    const chat = await this.chatModel.findById(chatId);
+
+    if (!chat) {
+      throw new BadRequestException('Chat does not exist');
+    }
+
+    if (!chat.users.includes(user._id as any)) {
+      throw new BadRequestException('You do not have permission to view the chat');
+    }
+
+    return await this.messageModel.find({ chatId }).populate([
       { path: 'sender', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
       {
-        path: 'chat',
+        path: 'chatId',
         select: {
           _id: 1,
           chatName: 1,

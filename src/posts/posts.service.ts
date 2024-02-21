@@ -7,10 +7,15 @@ import { Post, PostDocument } from './entities/post.entity';
 import { IUser } from 'src/types/users.interface';
 import { checkPostOwnership } from 'src/helpers/checkPostOwnership';
 import { Types } from 'mongoose';
+import { checkViewPostInGroup } from 'src/helpers/checkGroupMember';
+import { Group, GroupDocument } from 'src/groups/entities/group.entity';
 
 @Injectable()
 export class PostsService {
-  constructor(@InjectModel(Post.name) private postModel: SoftDeleteModel<PostDocument>,) {}
+  constructor(
+    @InjectModel(Post.name) private postModel: SoftDeleteModel<PostDocument>,
+    @InjectModel(Group.name) private groupModel: SoftDeleteModel<GroupDocument>,
+  ) {}
 
   async create(createPostDto: CreatePostDto, user: IUser) {
     const newPost = await this.postModel.create({
@@ -28,22 +33,64 @@ export class PostsService {
   }
 
   async findAll() {
-    return await this.postModel.find();
+    const allPosts = await this.postModel
+      .find()
+      .populate({ path: 'groupId', select: 'isPublic' });
+  
+    //@ts-ignore
+    const publicPosts = allPosts.filter(post => !post.groupId || post.groupId.isPublic);
+  
+    return publicPosts;
   }
-
+  
   async findAllWithAuthor(userId: string) {
-    return await this.postModel.find({author: userId, group: ''}).sort("-createdAt").populate([
-      { path: 'author', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
-      { path: 'likes', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
-      {
-        path: 'comments',
-        populate: {
-          path: 'user',
+    return await this.postModel
+      .find({ author: userId, group: '' })
+      .sort('-createdAt')
+      .populate([
+        {
+          path: 'author',
           select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
         },
-        select: { content: 1, user: 1, createdAt: 1 },
-      },
-    ]);
+        { path: 'likes', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
+        {
+          path: 'comments',
+          populate: {
+            path: 'user',
+            select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
+          },
+          select: { content: 1, user: 1, createdAt: 1 },
+        },
+      ]);
+  }
+
+  async findAllWithGroup(groupId: string, user: IUser) {
+    const group = await this.groupModel.findById(groupId);
+
+    if (!group) {
+      throw new BadRequestException('Group does not exist');
+    }
+
+    checkViewPostInGroup(group.admin, user._id, group.isPublic);
+
+    return await this.postModel
+      .find({ groupId })
+      .sort('-createdAt')
+      .populate([
+        {
+          path: 'author',
+          select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
+        },
+        { path: 'likes', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
+        {
+          path: 'comments',
+          populate: {
+            path: 'user',
+            select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
+          },
+          select: { content: 1, user: 1, createdAt: 1 },
+        },
+      ]);
   }
 
   async findOne(_id: string) {
@@ -62,13 +109,12 @@ export class PostsService {
   }
 
   async update(_id: string, updatePostDto: UpdatePostDto, user: IUser) {
-
     const post = await this.postModel.findById(_id);
 
     if (!post) {
-      throw new BadRequestException("Post does not exist")
+      throw new BadRequestException('Post does not exist');
     }
-    
+
     checkPostOwnership(post?.author.toString(), user);
 
     return await this.postModel.updateOne(
@@ -87,11 +133,11 @@ export class PostsService {
     const post = await this.postModel.findById(_id);
 
     if (!post) {
-      throw new BadRequestException("Post does not exist")
+      throw new BadRequestException('Post does not exist');
     }
 
     checkPostOwnership(post?.author.toString(), user);
-    
+
     await this.postModel.updateOne(
       { _id },
       {
@@ -109,7 +155,7 @@ export class PostsService {
     const post = await this.postModel.findById(_id);
 
     if (!post) {
-      throw new BadRequestException("Post does not exist")
+      throw new BadRequestException('Post does not exist');
     }
 
     const userId = new Types.ObjectId(user._id);
@@ -138,6 +184,6 @@ export class PostsService {
         },
         select: { content: 1, user: 1, createdAt: 1 },
       },
-    ]);;
+    ]);
   }
 }

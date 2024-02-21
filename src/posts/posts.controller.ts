@@ -29,6 +29,12 @@ export class PostsController {
     return this.postsService.findAllWithAuthor(userId);
   }
 
+  @ResponseMessage('Fetch posts in group')
+  @Get('/group/:groupId')
+  findAllWithGroup(@Param('groupId') groupId: string, @UserRequest() user: IUser) {
+    return this.postsService.findAllWithGroup(groupId, user);
+  }
+
   @Public()
   @ResponseMessage('Fetch a post by id')
   @Get(':id')

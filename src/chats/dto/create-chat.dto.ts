@@ -15,16 +15,16 @@ export class CreateChatGroupDto {
   })
   chatName: string;
 
-  @IsNotEmpty({ message: "Users cannot be blank" })
-  @IsMongoId({ each: true, message: "Each users must be in ObjectId format"})
-  @IsArray({ message: "Users is in array format" })
+  @IsNotEmpty({ message: 'Users cannot be blank' })
+  @IsMongoId({ each: true, message: 'Each user must be in ObjectId format' })
+  @IsArray({ message: 'Users is in array format' })
   users: mongoose.Schema.Types.ObjectId[];
 }
 
 export class AddUserToGroupDto {
-    @IsNotEmpty({ message: "Users cannot be blank" })
-    @IsMongoId({ each: true, message: "Each users must be in ObjectId format"})
-    @IsArray({ message: "Users is in array format" })
+  @IsNotEmpty({ message: 'Users cannot be blank' })
+  @IsMongoId({ each: true, message: 'Each user must be in ObjectId format' })
+  @IsArray({ message: 'Users is in array format' })
   users: mongoose.Schema.Types.ObjectId[];
 }
 

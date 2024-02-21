@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional } from "class-validator";
+import { IsArray, IsMongoId, IsNotEmpty, IsOptional } from "class-validator";
 import mongoose from "mongoose";
 
 export class CreateGroupDto {
@@ -15,6 +15,8 @@ export class CreateGroupDto {
     description: string;
 
     @IsOptional()
+    @IsMongoId({ each: true, message: 'Each member must be in ObjectId format' })
+    @IsArray({ message: 'Members is in array format' })
     members: mongoose.Types.ObjectId[];
 
 }

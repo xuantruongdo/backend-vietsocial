@@ -24,7 +24,7 @@ export class Post {
   comments: mongoose.Types.ObjectId[];
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Group.name })
-  group: mongoose.Schema.Types.ObjectId;
+  groupId: mongoose.Schema.Types.ObjectId;
 
   @Prop({ type: Object })
   createdBy: {

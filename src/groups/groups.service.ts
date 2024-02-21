@@ -14,9 +14,12 @@ export class GroupsService {
   ) {}
 
   async create(createGroupDto: CreateGroupDto, user: IUser) {
+    const { members } = createGroupDto;
     const newGroup = await this.groupModel.create({
       ...createGroupDto,
+
       admin: [user._id],
+      members: [...members, user._id],
       createdBy: {
         _id: user?._id,
         email: user?.email,
@@ -29,15 +32,40 @@ export class GroupsService {
   }
 
   async findAll() {
-    return await this.groupModel.find();
+    return await this.groupModel.find().populate([
+      { path: 'admin', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
+      { path: 'members', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } }
+    ]);
   }
 
   async findOne(_id: string) {
-    return await this.groupModel.findById(_id);
+
+    return (await this.groupModel.findById(_id)).populate([
+      { path: 'admin', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
+      { path: 'members', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } }
+    ]);
   }
 
-  update(id: number, updateGroupDto: UpdateGroupDto) {
-    return `This action updates a #${id} group`;
+  async update(_id: string, updateGroupDto: UpdateGroupDto, user: IUser) {
+
+    const group = await this.groupModel.findById(_id);
+
+    if (!group) {
+      throw new BadRequestException("Group does not exist")
+    }
+
+    checkGroupAdmin(group.admin, user._id)
+
+    return await this.groupModel.updateOne(
+      { _id },
+      {
+        ...updateGroupDto,
+        updatedBy: {
+          _id: user?._id,
+          email: user?.email,
+        },
+      },
+    );
   }
 
   async remove(_id: string, user: IUser) {
