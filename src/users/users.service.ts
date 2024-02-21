@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
-  ActiveUserDto,
   CreateUserDto,
   RegisterUserDto,
 } from './dto/create-user.dto';

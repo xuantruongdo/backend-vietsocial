@@ -11,6 +11,10 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
+import { PostsModule } from './posts/posts.module';
+import { CommentsModule } from './comments/comments.module';
+import { GroupsModule } from './groups/groups.module';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -33,6 +37,10 @@ import { PermissionsModule } from './permissions/permissions.module';
     MailModule,
     RolesModule,
     PermissionsModule,
+    PostsModule,
+    CommentsModule,
+    GroupsModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService,

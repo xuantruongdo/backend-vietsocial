@@ -34,21 +34,21 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw err || new UnauthorizedException('Invalid token');
     }
 
-    const targetMethod = request.method;
-    const targetEndpoint = request.route?.path;
+    // const targetMethod = request.method;
+    // const targetEndpoint = request.route?.path;
 
-    const permissions = user?.permissions ?? [];
-    let isExist = permissions.find(
-      (permission) =>
-        permission.method === targetMethod &&
-        permission.apiPath === targetEndpoint,
-    );
+    // const permissions = user?.permissions ?? [];
+    // let isExist = permissions.find(
+    //   (permission) =>
+    //     permission.method === targetMethod &&
+    //     permission.apiPath === targetEndpoint,
+    // );
 
-    if (targetEndpoint.startsWith("/api/v1/auth")) isExist = true;
+    // if (targetEndpoint.startsWith("/api/v1/auth")) isExist = true;
 
-    if (!isExist) {
-      throw new ForbiddenException("You do not have permission to access this endpoint!")
-    }
+    // if (!isExist) {
+    //   throw new ForbiddenException("You do not have permission to access this endpoint!")
+    // }
 
     return user;
   }
