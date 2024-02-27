@@ -18,7 +18,11 @@ export class CommentsService {
     private postModel: SoftDeleteModel<PostDocument>,
   ) {}
 
-  async create(postId: string, createCommentDto: CreateCommentDto, user: IUser) {
+  async create(
+    postId: string,
+    createCommentDto: CreateCommentDto,
+    user: IUser,
+  ) {
     const post = await this.postModel.findById(postId);
     if (!post) {
       throw new BadRequestException('Post does not exist');
@@ -37,10 +41,14 @@ export class CommentsService {
 
     await post.save();
 
-    return {
-      _id: newComment?._id,
-      createdAt: newComment.createdAt,
-    };
+    return await post.populate({
+      path: 'comments',
+      select: '_id content createdAt',
+      populate: {
+        path: 'user',
+        select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
+      },
+    });
   }
 
   findAll() {

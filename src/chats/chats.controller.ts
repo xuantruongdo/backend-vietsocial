@@ -27,6 +27,12 @@ export class ChatsController {
     return this.chatsService.fetchChatsCurrentUser(user);
   }
 
+  @ResponseMessage("Fetch group chats current user")
+  @Get('/group')
+  fetchGroupChatsCurrentUser(@UserRequest() user: IUser) {
+    return this.chatsService.fetchGroupChatsCurrentUser(user);
+  }
+
   @ResponseMessage("Rename group chat")
   @Patch('/rename/:id')
   renameGroup(@Param('id') id: string, @Body() updateChatNameGroupDto: UpdateChatNameGroupDto, @UserRequest() user: IUser) {

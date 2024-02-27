@@ -29,6 +29,14 @@ export class AuthController {
   }
 
   @Public()
+  @ResponseMessage('Login account')
+  @UseGuards(LocalAuthGuard)
+  @Post('/login')
+  login(@Req() req, @Res({ passthrough: true }) response: Response) {
+    return this.authService.login(req.user, response);
+  }
+
+  @Public()
   @ResponseMessage('Active account')
   @Post('/active')
   active(@Body() activeUserDto: ActiveUserDto) {
@@ -53,14 +61,6 @@ export class AuthController {
   @Patch('/password')
   handleChangePassword( @Body() changePasswordDto: ChangePasswordDto, @UserRequest() user: IUser) {
     return this.authService.changePassword( changePasswordDto, user);
-  }
-
-  @Public()
-  @ResponseMessage('Login account')
-  @UseGuards(LocalAuthGuard)
-  @Post('/login')
-  login(@Req() req, @Res({ passthrough: true }) response: Response) {
-    return this.authService.login(req.user, response);
   }
 
   @ResponseMessage('Fetch current account')

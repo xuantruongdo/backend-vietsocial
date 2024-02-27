@@ -11,7 +11,7 @@ export class Post {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: User.name })
   author: mongoose.Schema.Types.ObjectId;
 
-  @Prop({ required: true })
+  @Prop()
   content: string;
 
   @Prop()

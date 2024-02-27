@@ -12,7 +12,13 @@ import { getHashPassword } from 'src/helpers/getHashPassword';
 import { MailService } from 'src/mail/mail.service';
 import { RolesService } from 'src/roles/roles.service';
 import { IUser } from 'src/types/users.interface';
-import { ActiveUserDto, ChangePasswordDto, ForgetPasswordDto, GetCodeDto, RegisterUserDto } from 'src/users/dto/create-user.dto';
+import {
+  ActiveUserDto,
+  ChangePasswordDto,
+  ForgetPasswordDto,
+  GetCodeDto,
+  RegisterUserDto,
+} from 'src/users/dto/create-user.dto';
 import { User, UserDocument } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/users.service';
 
@@ -28,7 +34,6 @@ export class AuthService {
   ) {}
 
   async register(registerUserDto: RegisterUserDto) {
-
     const { fullname, email, password } = registerUserDto;
 
     const isExist = await this.userModel.findOne({ email });
@@ -39,18 +44,18 @@ export class AuthService {
 
     const hashPassword = getHashPassword(password);
 
-    const userRole = await this.rolesService.findOneByName(USER_ROLE)
+    const userRole = await this.rolesService.findOneByName(USER_ROLE);
 
     const newUser = await this.userModel.create({
       fullname,
       email,
       password: hashPassword,
       role: userRole._id,
-      isActive: false,
+      isActive: true,
       type: 'SYSTEM',
     });
 
-    await this.mailService.sendConfirmationEmail(email);
+    // await this.mailService.sendConfirmationEmail(email);
 
     return {
       _id: newUser?._id,
@@ -85,7 +90,7 @@ export class AuthService {
   }
 
   async login(user: IUser, response: Response) {
-    const { _id, fullname, email, role, permissions } = user;
+    const { _id, fullname, email, avatar, role, permissions } = user;
 
     const payload = {
       sub: 'token login',
@@ -93,6 +98,7 @@ export class AuthService {
       _id,
       fullname,
       email,
+      avatar,
       role,
     };
 
@@ -110,7 +116,7 @@ export class AuthService {
     await this.usersService.updateRefreshToken(_id, refresh_token);
     return {
       access_token: this.jwtService.sign(payload),
-      user: { _id, fullname, email, role, permissions },
+      user: { _id, fullname, email, avatar, role, permissions },
     };
   }
 
@@ -137,17 +143,22 @@ export class AuthService {
     const { currentPassword, newPassword } = changePasswordDto;
 
     const userCurrent = await this.userModel.findOne({ _id: user?._id });
-    const isValid = this.usersService.isValidPassword(currentPassword, userCurrent.password);
+    const isValid = this.usersService.isValidPassword(
+      currentPassword,
+      userCurrent.password,
+    );
 
     if (!isValid) {
       throw new BadRequestException('Incorrect password');
     }
-    
-    const hashPassword = getHashPassword(newPassword);
-    return await this.userModel.updateOne({ _id: user?._id }, {
-      password: hashPassword
-    })
 
+    const hashPassword = getHashPassword(newPassword);
+    return await this.userModel.updateOne(
+      { _id: user?._id },
+      {
+        password: hashPassword,
+      },
+    );
   }
 
   async validateUser(email: string, pass: string): Promise<any> {
@@ -179,9 +190,10 @@ export class AuthService {
 
   async processNewToken(refresh_token_cookie: string, response: Response) {
     try {
-      const user = await this.usersService.findUserByToken(refresh_token_cookie);
+      const user =
+        await this.usersService.findUserByToken(refresh_token_cookie);
       console.log(user);
-      const { _id, fullname, email, role } = user;
+      const { _id, fullname, email, avatar, role } = user;
 
       const payload = {
         sub: 'token login',
@@ -189,6 +201,7 @@ export class AuthService {
         _id,
         fullname,
         email,
+        avatar,
       };
 
       const refresh_token = createRefreshToken(
@@ -216,6 +229,7 @@ export class AuthService {
           _id,
           fullname,
           email,
+          avatar,
           role,
           permissions: temp?.permissions ?? [],
         },
@@ -229,5 +243,11 @@ export class AuthService {
     await this.usersService.updateRefreshToken(user._id, '');
     response.clearCookie('refresh_token');
     return 'ok';
+  }
+
+  async fetchCurrentAccount(user: IUser) {
+    const { _id, fullname, email, avatar, role, permissions } = user;
+
+    return await this.usersService.findOneByEmail(email);
   }
 }

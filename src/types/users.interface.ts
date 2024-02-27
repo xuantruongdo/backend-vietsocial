@@ -14,7 +14,7 @@ export interface IUser {
     live: string;
     from: string;
     relationship: string;
-    friends: mongoose.Types.ObjectId[];
+    followers: mongoose.Types.ObjectId[];
     followings: mongoose.Types.ObjectId[];
     permissions?: {
         _id: string;

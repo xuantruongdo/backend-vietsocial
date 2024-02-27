@@ -18,7 +18,7 @@ export class User {
   @Prop({ default: 'no-avatar.png' })
   avatar: string;
 
-  @Prop()
+  @Prop({ default: 'no-cover.png' })
   cover: string;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Role.name })
@@ -27,8 +27,7 @@ export class User {
   @Prop()
   isActive: boolean;
 
-  
-  @Prop({default: false})
+  @Prop({ default: false })
   isVerify: boolean;
 
   @Prop()
@@ -47,7 +46,7 @@ export class User {
   relationship: string;
 
   @Prop({ type: [mongoose.Schema.Types.ObjectId], default: [], ref: User.name })
-  friends: mongoose.Types.ObjectId[];
+  followers: mongoose.Types.ObjectId[];
 
   @Prop({ type: [mongoose.Schema.Types.ObjectId], default: [], ref: User.name })
   followings: mongoose.Types.ObjectId[];

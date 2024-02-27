@@ -125,11 +125,16 @@ export class ChatsService {
             path: 'sender',
             select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
           },
-          select: { content: 1, sender: 1 },
+          select: { content: 1, sender: 1, createdAt: 1 },
         },
         { path: 'users', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
         { path: 'groupAdmin', select: { _id: 1, fullname: 1, email: 1, avatar: 1 },},
       ]);
+  }
+
+  async fetchGroupChatsCurrentUser(user: IUser) {
+    return this.chatModel.find({users: { $elemMatch: { $eq: user._id } }, isGroupChat: true})
+    .sort('-updatedAt')
   }
 
   async renameGroup(_id: string, updateChatNameGroupDto: UpdateChatNameGroupDto, user: IUser) {

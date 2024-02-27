@@ -1,8 +1,8 @@
-import { IsNotEmpty, IsOptional } from 'class-validator';
+import { IsOptional } from 'class-validator';
 import mongoose from 'mongoose';
 
 export class CreatePostDto {
-  @IsNotEmpty({ message: 'Content cannot be blank' })
+  @IsOptional()
   content: string;
 
   @IsOptional()

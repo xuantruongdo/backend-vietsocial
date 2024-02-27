@@ -17,6 +17,7 @@ import { GroupsModule } from './groups/groups.module';
 import { FilesModule } from './files/files.module';
 import { ChatsModule } from './chats/chats.module';
 import { MessagesModule } from './messages/messages.module';
+import { ChatGateWay } from './chat.gateway';
 
 @Module({
   imports: [
@@ -51,6 +52,8 @@ import { MessagesModule } from './messages/messages.module';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
-    },],
+    },
+    ChatGateWay
+  ],
 })
 export class AppModule {}

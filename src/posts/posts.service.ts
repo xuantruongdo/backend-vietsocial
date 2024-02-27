@@ -35,17 +35,35 @@ export class PostsService {
   async findAll() {
     const allPosts = await this.postModel
       .find()
-      .populate({ path: 'groupId', select: 'isPublic' });
-  
-    //@ts-ignore
-    const publicPosts = allPosts.filter(post => !post.groupId || post.groupId.isPublic);
-  
+      .sort('-createdAt')
+      .populate([
+        { path: 'groupId', select: 'isPublic' },
+        { path: 'author', select: '_id fullname email avatar' },
+        { path: 'likes', select: '_id fullname email avatar' },
+        {
+          path: 'comments',
+          select: '_id content createdAt',
+          populate: {
+            path: 'user',
+            select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
+          },
+        },
+      ]);
+
+    const publicPosts = allPosts.filter(
+      //@ts-ignore
+      (post) => !post.groupId || post.groupId.isPublic,
+    );
+
     return publicPosts;
   }
-  
+
   async findAllWithAuthor(userId: string) {
     return await this.postModel
-      .find({ author: userId, group: '' })
+      .find({
+        author: userId,
+        $and: [{ groupId: null }, { groupId: { $exists: false } }],
+      })
       .sort('-createdAt')
       .populate([
         {
