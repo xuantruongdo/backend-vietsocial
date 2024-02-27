@@ -54,7 +54,7 @@ export class AuthService {
       isActive: true,
       type: 'SYSTEM',
     });
-
+ 
     // await this.mailService.sendConfirmationEmail(email);
 
     return {
