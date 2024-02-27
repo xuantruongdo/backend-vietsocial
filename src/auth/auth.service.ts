@@ -184,7 +184,7 @@ export class AuthService {
       permissions: temp?.permissions ?? [],
     };
 
-    return objectUser;
+    return user;
   }
 
   async processNewToken(refresh_token_cookie: string, response: Response) {
