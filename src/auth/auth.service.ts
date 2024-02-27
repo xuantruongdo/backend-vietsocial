@@ -141,9 +141,8 @@ export class AuthService {
 
   async changePassword(changePasswordDto: ChangePasswordDto, user: IUser) {
     const { currentPassword, newPassword } = changePasswordDto;
-
     const userCurrent = await this.userModel.findOne({ _id: user?._id });
-    const isValid = this.usersService.isValidPassword(
+    const isValid = await this.usersService.isValidPassword(
       currentPassword,
       userCurrent.password,
     );
