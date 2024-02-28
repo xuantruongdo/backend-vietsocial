@@ -92,7 +92,7 @@ export class UsersService {
       .select('followings')
       .populate({
         path: 'followings',
-        select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
+        select: { _id: 1, fullname: 1, email: 1, avatar: 1, isVerify: 1 },
       });
   }
 

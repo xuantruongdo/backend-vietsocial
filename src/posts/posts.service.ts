@@ -35,17 +35,17 @@ export class PostsService {
   async findAll() {
     const allPosts = await this.postModel
       .find()
-      .sort('-createdAt')
+      .sort('-updatedAt')
       .populate([
         { path: 'groupId', select: 'isPublic' },
-        { path: 'author', select: '_id fullname email avatar' },
+        { path: 'author', select: '_id fullname email avatar isVerify' },
         { path: 'likes', select: '_id fullname email avatar' },
         {
           path: 'comments',
           select: '_id content createdAt',
           populate: {
             path: 'user',
-            select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
+            select: { _id: 1, fullname: 1, email: 1, avatar: 1, isVerify: 1 },
           },
         },
       ]);
@@ -68,14 +68,14 @@ export class PostsService {
       .populate([
         {
           path: 'author',
-          select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
+          select: { _id: 1, fullname: 1, email: 1, avatar: 1, isVerify: 1 },
         },
         { path: 'likes', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
         {
           path: 'comments',
           populate: {
             path: 'user',
-            select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
+            select: { _id: 1, fullname: 1, email: 1, avatar: 1, isVerify: 1 },
           },
           select: { content: 1, user: 1, createdAt: 1 },
         },
