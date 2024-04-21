@@ -51,11 +51,11 @@ export class AuthService {
       email,
       password: hashPassword,
       role: userRole._id,
-      isActive: true,
+      isActive: false,
       type: 'SYSTEM',
     });
  
-    // await this.mailService.sendConfirmationEmail(email);
+    await this.mailService.sendConfirmationEmail(email);
 
     return {
       _id: newUser?._id,
@@ -75,7 +75,7 @@ export class AuthService {
       throw new BadRequestException('Account has been activated');
     }
 
-    if (user.confirmationCode !== confirmationCode) {
+    if (user.confirmationCode !== Number(confirmationCode)) {
       throw new BadRequestException(
         'Activation code is incorrect. Please try again',
       );

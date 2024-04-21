@@ -21,4 +21,10 @@ export class UpdateUserDto {
 
   @IsOptional()
   relationship: string;
+
+  @IsOptional()
+  isActive: string;
+
+  @IsOptional()
+  isVerify: string;
 }

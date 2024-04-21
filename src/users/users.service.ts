@@ -6,11 +6,17 @@ import { User, UserDocument } from './entities/user.entity';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { compareSync } from 'bcryptjs';
 import { IUser } from 'src/types/users.interface';
+import aqp from 'api-query-params';
+import { RolesService } from 'src/roles/roles.service';
+import { ADMIN_ROLE } from 'src/databases/sample';
+import { Post, PostDocument } from 'src/posts/entities/post.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
+    private rolesService: RolesService,
     @InjectModel(User.name) private userModel: SoftDeleteModel<UserDocument>,
+    @InjectModel(Post.name) private postModel: SoftDeleteModel<PostDocument>,
   ) {}
 
   async findOneByEmail(email: string) {
@@ -109,6 +115,46 @@ export class UsersService {
       .select('-password -refreshToken -confirmationCode');
   }
 
+  async fetchAllPaginate(currentPage: number, limit: number, qs: string) {
+    const { filter, sort, projection, population } = aqp(qs);
+    delete filter.current;
+    delete filter.pageSize;
+
+    let offset = (+currentPage - 1) * +limit;
+    let defaultLimit = +limit ? +limit : 10;
+
+    const totalItems = (await this.userModel.find(filter)).length;
+    const totalPages = Math.ceil(totalItems / defaultLimit);
+
+    const result = await this.userModel
+      .find(filter)
+      .skip(offset)
+      .limit(defaultLimit)
+      .sort(sort as any)
+      .select('-password -refreshToken -confirmationCode')
+      .populate({
+        path: 'role',
+        select: 'name',
+      })
+      .exec();
+
+    return {
+      meta: {
+        current: currentPage,
+        pageSize: limit,
+        pages: totalPages,
+        total: totalItems,
+      },
+      result,
+    };
+  }
+
+  async getCountData() {
+    const userCount = await this.userModel.countDocuments();
+    const postCount = await this.postModel.countDocuments();
+    return { userCount, postCount };
+  }
+
   async fillAllWithId(data: any) {
     const { ids } = data;
     const onlineUsers = this.userModel
@@ -119,7 +165,9 @@ export class UsersService {
   }
 
   async updateUser(_id: string, updateUserDto: UpdateUserDto, user: IUser) {
-    if (_id !== user?._id) {
+    const adminRole = await this.rolesService.findOneByName(ADMIN_ROLE);
+    // @ts-ignore
+    if (_id !== user?._id && user.role._id.toString() !== adminRole._id.toString()) {
       throw new BadRequestException(
         'You do not have permission to change user information',
       );
@@ -135,5 +183,14 @@ export class UsersService {
         },
       },
     );
+  }
+
+  async findUsersByFullname(fullname: string): Promise<User[]> {
+    return this.userModel
+      .find({
+        fullname: { $regex: new RegExp(fullname, 'i') },
+      })
+      .select('-password -confirmationCode')
+      .exec();
   }
 }

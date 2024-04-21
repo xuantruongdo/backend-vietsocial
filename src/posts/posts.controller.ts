@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -33,6 +33,17 @@ export class PostsController {
   @Get('/group/:groupId')
   findAllWithGroup(@Param('groupId') groupId: string, @UserRequest() user: IUser) {
     return this.postsService.findAllWithGroup(groupId, user);
+  }
+
+  @Public()
+  @ResponseMessage("Fetch posts with paginate")
+  @Get('/paginate')
+  fetchAllPaginate(
+    @Query("current") currentPage: string,
+    @Query("pageSize") limit: string,
+    @Query() qs: string,
+  ) {
+    return this.postsService.fetchAllPaginate(+currentPage, +limit, qs);
   }
 
   @Public()

@@ -9,6 +9,7 @@ import { checkPostOwnership } from 'src/helpers/checkPostOwnership';
 import { Types } from 'mongoose';
 import { checkViewPostInGroup } from 'src/helpers/checkGroupMember';
 import { Group, GroupDocument } from 'src/groups/entities/group.entity';
+import aqp from 'api-query-params';
 
 @Injectable()
 export class PostsService {
@@ -203,5 +204,38 @@ export class PostsService {
         select: { content: 1, user: 1, createdAt: 1 },
       },
     ]);
+  }
+
+  async fetchAllPaginate(currentPage: number, limit: number, qs: string) {
+    const { filter, sort, projection, population } = aqp(qs);
+    delete filter.current;
+    delete filter.pageSize;
+
+    let offset = (+currentPage - 1) * +limit;
+    let defaultLimit = +limit ? +limit : 10;
+
+    const totalItems = (await this.postModel.find(filter)).length;
+    const totalPages = Math.ceil(totalItems / defaultLimit);
+
+    const result = await this.postModel
+      .find(filter)
+      .skip(offset)
+      .limit(defaultLimit)
+      .sort(sort as any)
+      .populate({
+        path: 'author',
+        select: { fullname: 1 },
+      })
+      .exec();
+
+    return {
+      meta: {
+        current: currentPage,
+        pageSize: limit,
+        pages: totalPages,
+        total: totalItems,
+      },
+      result,
+    };
   }
 }
