@@ -111,7 +111,7 @@ export class UsersService {
 
   async findAll() {
     return this.userModel
-      .find()
+      .find({ isActive: true })
       .select('-password -refreshToken -confirmationCode');
   }
 
@@ -158,7 +158,7 @@ export class UsersService {
   async fillAllWithId(data: any) {
     const { ids } = data;
     const onlineUsers = this.userModel
-      .find({ _id: { $in: ids } })
+      .find({ _id: { $in: ids }, isActive: true })
       .select('-password -refreshToken -confirmationCode');
 
     return onlineUsers;
@@ -166,8 +166,11 @@ export class UsersService {
 
   async updateUser(_id: string, updateUserDto: UpdateUserDto, user: IUser) {
     const adminRole = await this.rolesService.findOneByName(ADMIN_ROLE);
-    // @ts-ignore
-    if (_id !== user?._id && user.role._id.toString() !== adminRole._id.toString()) {
+    if (
+      _id !== user?._id &&
+      // @ts-ignore
+      user.role._id.toString() !== adminRole._id.toString()
+    ) {
       throw new BadRequestException(
         'You do not have permission to change user information',
       );
@@ -189,8 +192,33 @@ export class UsersService {
     return this.userModel
       .find({
         fullname: { $regex: new RegExp(fullname, 'i') },
+        isActive: true,
       })
       .select('-password -confirmationCode')
       .exec();
+  }
+
+  async remove(_id: string, user: IUser) {
+    const adminRole = await this.rolesService.findOneByName(ADMIN_ROLE);
+    if (
+      _id !== user?._id &&
+      // @ts-ignore
+      user.role._id.toString() !== adminRole._id.toString()
+    ) {
+      throw new BadRequestException(
+        'You do not have permission to delete user',
+      );
+    }
+    await this.userModel.updateOne(
+      { _id },
+      {
+        deletedBy: {
+          _id: user._id,
+          email: user.email,
+        },
+      },
+    );
+
+    return this.userModel.softDelete({ _id });
   }
 }

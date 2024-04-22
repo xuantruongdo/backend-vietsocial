@@ -31,7 +31,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     // You can throw an exception based on either "info" or "err" arguments
     if (err || !user) {
-      throw err || new UnauthorizedException('Invalid token');
+      throw err || new UnauthorizedException('Invalid token! Please login');
     }
 
     // const targetMethod = request.method;

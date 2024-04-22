@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Patch, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Patch, Query, Delete } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { Public, ResponseMessage, UserRequest } from 'src/decorator/customize';
 import { IUser } from 'src/types/users.interface';
@@ -85,5 +85,11 @@ export class UsersController {
   @Get('/fullname/:fullname')
   findUsersByFullname(@Param('fullname') fullname: string) {
     return this.usersService.findUsersByFullname(fullname);
+  }
+
+  @ResponseMessage("Delete a user")
+  @Delete(':id')
+  remove(@Param('id') id: string, @UserRequest() user: IUser,) {
+    return this.usersService.remove(id, user);
   }
 }

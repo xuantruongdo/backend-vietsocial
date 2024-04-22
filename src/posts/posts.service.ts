@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -10,10 +10,13 @@ import { Types } from 'mongoose';
 import { checkViewPostInGroup } from 'src/helpers/checkGroupMember';
 import { Group, GroupDocument } from 'src/groups/entities/group.entity';
 import aqp from 'api-query-params';
+import { RolesService } from 'src/roles/roles.service';
+import { ADMIN_ROLE } from 'src/databases/sample';
 
 @Injectable()
 export class PostsService {
   constructor(
+    private rolesService: RolesService,
     @InjectModel(Post.name) private postModel: SoftDeleteModel<PostDocument>,
     @InjectModel(Group.name) private groupModel: SoftDeleteModel<GroupDocument>,
   ) {}
@@ -149,26 +152,31 @@ export class PostsService {
   }
 
   async remove(_id: string, user: IUser) {
+    const adminRole = await this.rolesService.findOneByName(ADMIN_ROLE);
     const post = await this.postModel.findById(_id);
-
+  
     if (!post) {
       throw new BadRequestException('Post does not exist');
     }
-
-    checkPostOwnership(post?.author.toString(), user);
-
+  
+    //@ts-ignore
+    if (post.author.toString() !== user._id.toString() && user.role._id.toString() !== adminRole._id.toString()) {
+      throw new UnauthorizedException('You do not have permission to delete this post');
+    }
+  
     await this.postModel.updateOne(
       { _id },
       {
         deletedBy: {
-          _id: user?._id,
-          email: user?.email,
+          _id: user._id,
+          email: user.email,
         },
       },
     );
-
+  
     return this.postModel.softDelete({ _id });
   }
+  
 
   async like(_id: string, user: IUser) {
     const post = await this.postModel.findById(_id);
