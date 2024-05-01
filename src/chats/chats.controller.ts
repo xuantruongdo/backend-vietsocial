@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { ChatsService } from './chats.service';
-import { AddUserToGroupDto, CreateChatDto, CreateChatGroupDto, UpdateChatNameGroupDto } from './dto/create-chat.dto';
+import { AddUserToGroupDto, CreateChatDto, CreateChatGroupDto, UpdateChatNameGroupDto, UpdateGroupDto } from './dto/create-chat.dto';
 import { UpdateChatDto } from './dto/update-chat.dto';
 import { ResponseMessage, UserRequest } from 'src/decorator/customize';
 import { IUser } from 'src/types/users.interface';
@@ -39,6 +39,12 @@ export class ChatsController {
     return this.chatsService.renameGroup(id, updateChatNameGroupDto, user);
   }
 
+  @ResponseMessage("Update group chat")
+  @Patch(':id')
+  updateGroup(@Param('id') id: string, @Body() updateGroupDto: UpdateGroupDto, @UserRequest() user: IUser) {
+    return this.chatsService.updateGroup(id, updateGroupDto, user);
+  }
+
   @ResponseMessage("Add user to group chat")
   @Patch('/add/:id')
   addUserToGroup(@Param('id') id: string, @Body() addUserToGroupDto: AddUserToGroupDto, @UserRequest() user: IUser) {
@@ -55,6 +61,12 @@ export class ChatsController {
   @Patch('/leave/:id')
   leaveGroup(@Param('id') id: string, @UserRequest() user: IUser) {
     return this.chatsService.leaveGroup(id, user);
+  }
+
+  @ResponseMessage("Delete group chat")
+  @Delete(':id')
+  deleteGroup(@Param('id') id: string, @UserRequest() user: IUser) {
+    return this.chatsService.remove(id, user);
   }
 
 }

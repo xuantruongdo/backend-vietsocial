@@ -54,7 +54,7 @@ export class AuthService {
       isActive: false,
       type: 'SYSTEM',
     });
- 
+
     await this.mailService.sendConfirmationEmail(email);
 
     return {
@@ -191,7 +191,6 @@ export class AuthService {
     try {
       const user =
         await this.usersService.findUserByToken(refresh_token_cookie);
-      console.log(user);
       const { _id, fullname, email, avatar, role } = user;
 
       const payload = {

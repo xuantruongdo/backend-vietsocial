@@ -34,3 +34,11 @@ export class UpdateChatNameGroupDto {
   })
   chatName: string;
 }
+
+export class UpdateGroupDto {
+  @IsOptional()
+  chatName: string;
+
+  @IsOptional()
+  users: string[];
+}

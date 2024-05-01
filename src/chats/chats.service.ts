@@ -1,5 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { AddUserToGroupDto, CreateChatDto, CreateChatGroupDto, UpdateChatNameGroupDto } from './dto/create-chat.dto';
+import {
+  AddUserToGroupDto,
+  CreateChatDto,
+  CreateChatGroupDto,
+  UpdateChatNameGroupDto,
+  UpdateGroupDto,
+} from './dto/create-chat.dto';
 import { UpdateChatDto } from './dto/update-chat.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Chat, ChatDocument } from './entities/chat.entity';
@@ -83,11 +89,13 @@ export class ChatsService {
 
     //@ts-ignore
     if (users.includes(user._id)) {
-      throw new BadRequestException('Cannot create group chat with yourself',);
+      throw new BadRequestException('Cannot create group chat with yourself');
     }
 
     if (users.length < 2) {
-      throw new BadRequestException('The chat group must have at least 3 people',);
+      throw new BadRequestException(
+        'The chat group must have at least 3 people',
+      );
     }
 
     const newGroupChat = await this.chatModel.create({
@@ -111,12 +119,16 @@ export class ChatsService {
         select: { content: 1, sender: 1 },
       },
       { path: 'users', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
-      { path: 'groupAdmin', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
+      {
+        path: 'groupAdmin',
+        select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
+      },
     ]);
   }
 
   async fetchChatsCurrentUser(user: IUser) {
-    return this.chatModel.find({users: { $elemMatch: { $eq: user._id } },})
+    return this.chatModel
+      .find({ users: { $elemMatch: { $eq: user._id } } })
       .sort('-updatedAt')
       .populate([
         {
@@ -128,16 +140,24 @@ export class ChatsService {
           select: { content: 1, sender: 1, createdAt: 1 },
         },
         { path: 'users', select: { _id: 1, fullname: 1, email: 1, avatar: 1 } },
-        { path: 'groupAdmin', select: { _id: 1, fullname: 1, email: 1, avatar: 1 },},
+        {
+          path: 'groupAdmin',
+          select: { _id: 1, fullname: 1, email: 1, avatar: 1 },
+        },
       ]);
   }
 
   async fetchGroupChatsCurrentUser(user: IUser) {
-    return this.chatModel.find({users: { $elemMatch: { $eq: user._id } }, isGroupChat: true})
-    .sort('-updatedAt')
+    return this.chatModel
+      .find({ users: { $elemMatch: { $eq: user._id } }, isGroupChat: true })
+      .sort('-updatedAt');
   }
 
-  async renameGroup(_id: string, updateChatNameGroupDto: UpdateChatNameGroupDto, user: IUser) {
+  async renameGroup(
+    _id: string,
+    updateChatNameGroupDto: UpdateChatNameGroupDto,
+    user: IUser,
+  ) {
     const { chatName } = updateChatNameGroupDto;
     await this.chatModel.updateOne(
       { _id },
@@ -153,7 +173,34 @@ export class ChatsService {
     return await this.chatModel.findById(_id);
   }
 
-  async addUserToGroup(_id: string, addUserToGroupDto: AddUserToGroupDto, user: IUser,) {
+  async updateGroup(_id: string, updateGroupDto: UpdateGroupDto, user: IUser) {
+    const chat = await this.chatModel.findById(_id);
+
+    if (chat.groupAdmin.toString() !== user._id) {
+      throw new BadRequestException('Only admins have the right to update');
+    }
+
+    const { chatName, users } = updateGroupDto;
+    await this.chatModel.updateOne(
+      { _id },
+      {
+        chatName,
+        users,
+        updatedBy: {
+          _id: user?._id,
+          email: user?.email,
+        },
+      },
+    );
+
+    return await this.chatModel.findById(_id);
+  }
+
+  async addUserToGroup(
+    _id: string,
+    addUserToGroupDto: AddUserToGroupDto,
+    user: IUser,
+  ) {
     const { users } = addUserToGroupDto;
 
     const chat = await this.chatModel.findById(_id);
@@ -189,7 +236,11 @@ export class ChatsService {
     ]);
   }
 
-  async removeUserFromGroup(_id: string, addUserToGroupDto: AddUserToGroupDto, user: IUser,) {
+  async removeUserFromGroup(
+    _id: string,
+    addUserToGroupDto: AddUserToGroupDto,
+    user: IUser,
+  ) {
     const { users } = addUserToGroupDto;
 
     let chat = await this.chatModel.findById(_id);
@@ -210,13 +261,19 @@ export class ChatsService {
       throw new BadRequestException('Chat must have at least 3 members');
     }
 
-    const allUsersExistInChat = users.every((user) => chat.users.includes(user as any))
+    const allUsersExistInChat = users.every((user) =>
+      chat.users.includes(user as any),
+    );
 
     if (!allUsersExistInChat) {
-      throw new BadRequestException("Contains a member's code that is not part of the chat");
+      throw new BadRequestException(
+        "Contains a member's code that is not part of the chat",
+      );
     }
 
-    chat.users = chat.users.filter((user) => users.includes(user.toString() as any))
+    chat.users = chat.users.filter((user) =>
+      users.includes(user.toString() as any),
+    );
 
     await chat.save();
 
@@ -262,15 +319,32 @@ export class ChatsService {
           },
         },
       );
-  
+
       return this.chatModel.softDelete({ _id });
     }
 
-    chat.users = chat.users.filter((userId) => userId.toString() !== user._id)
+    chat.users = chat.users.filter((userId) => userId.toString() !== user._id);
 
     await chat.save();
 
     return 'ok';
   }
 
+  async remove(_id: string, user: IUser) {
+    const chat = await this.chatModel.findById(_id);
+    if (chat.groupAdmin.toString() !== user._id) {
+      throw new BadRequestException('Only admins have the right to delete');
+    }
+    await this.chatModel.updateOne(
+      { _id },
+      {
+        deletedBy: {
+          _id: user?._id,
+          email: user?.email,
+        },
+      },
+    );
+
+    return this.chatModel.softDelete({ _id });
+  }
 }
